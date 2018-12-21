@@ -65,6 +65,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 //#define DISABLE_IWDG_REFRESH
+#define STEP_ONE_EIGHTH 8
+#define STEP_SIZE STEP_ONE_EIGHTH
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -271,8 +273,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PE2 PE3 PE4 PE5 
                            PE6 PE7 PE8 PE9 
@@ -322,10 +326,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD8 PD9 PD10 PD11 
-                           PD12 PD13 PD14 PD15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  /*Configure GPIO pins : PD8 PD9 PD10 PD11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PD12 PD13 PD14 PD15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -376,6 +385,7 @@ void StartHeartBeat(void const * argument)
 /* USER CODE BEGIN Header_StartStepperTask */
 /**
 * @brief Function implementing the stepStepperMoto thread.
+* @note Motor Pin Map->[Blue:Pink:Yellow:Orange] == [PD11:8]
 * @param argument: Not used
 * @retval None
 */
@@ -383,10 +393,17 @@ void StartHeartBeat(void const * argument)
 void StartStepperTask(void const * argument)
 {
   /* USER CODE BEGIN StartStepperTask */
+  const uint32_t stepSequence[STEP_SIZE] = { 1, 3, 2, 6, 4, 12, 8, 9 };
+  uint32_t stepIndex = 0;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(20);
+	while(stepIndex < STEP_SIZE){
+		HAL_GPIO_WritePin(GPIOD, (stepSequence[stepIndex] << 8), GPIO_PIN_RESET);
+		(STEP_SIZE <= (stepIndex + 1)) ? stepIndex = 0 : ++stepIndex;
+
+		osDelay(20);
+	}
   }
   /* USER CODE END StartStepperTask */
 }
